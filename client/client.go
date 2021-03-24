@@ -2,21 +2,31 @@ package main
 
 import (
 	"bufio"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net"
 	"os"
+
+	"golang.org/x/crypto/otr"
+)
+
+// Instead of implementing the OTR-protocol myself, I just use the one provided by go :)
+var (
+	privKey   otr.PrivateKey
+	conv      otr.Conversation
+	secChange otr.SecurityChange
 )
 
 type client struct {
-	conn *net.UDPConn
-	ID string
-	name string
+	conn  *net.UDPConn
+	ID    string
+	name  string
 	alive bool
 
 	sendMsg chan string
-	recMsg chan string
+	recMsg  chan string
 
 	toID string
 }
@@ -29,14 +39,14 @@ type message struct {
 	From      *net.UDPAddr
 	To        *net.UDPAddr
 	Timestamp int64
-	Action int
+	Action    int
 }
 
 func (c *client) sendMessage(action int, msg string) {
 	m := message{
 		Content: msg,
-		Name: c.name,
-		Action: action,
+		Name:    c.name,
+		Action:  action,
 	}
 
 	data, err := json.Marshal(m)
@@ -63,13 +73,13 @@ func (c *client) receiveMessage() {
 
 func (c *client) sendMessageChannel() {
 	for c.alive {
-		msg := <- c.sendMsg
+		msg := <-c.sendMsg
 		m := message{
-			Action: 1,
-			Name: c.name,
-			ID: c.ID,
+			Action:  1,
+			Name:    c.name,
+			ID:      c.ID,
 			Content: msg,
-			ToID: c.toID,
+			ToID:    c.toID,
 		}
 		data, err := json.Marshal(m)
 		if err != nil {
@@ -105,11 +115,54 @@ func (c *client) getMessage() {
 
 func (c *client) print() {
 	for c.alive {
-		msg := <- c.recMsg
+		msg := <-c.recMsg
 		var m message
 		json.Unmarshal([]byte(msg), &m)
+
+		if m.Action == 1 {
+			bytes := []byte(m.Content)
+			out, enc, _, mpeer, err := conv.Receive(bytes)
+			if err != nil {
+				log.Printf("error receiving conversation bytes")
+			}
+
+			if len(out) > 0 {
+				if !enc {
+					log.Println("conversation is not encrypted")
+					fmt.Printf("[%s]: %s\n", m.Name, string(out))
+				} else {
+					fmt.Printf("[%s]: %s\n", m.Name, string(out))
+				}
+			}
+
+			if len(mpeer) > 0 {
+				for _, msg := range mpeer {
+					c.sendMsg <- string(msg)
+				}
+			}
+		}
+
 		fmt.Printf("[%s]: %s\n", m.Name, m.Content)
 	}
+}
+
+func genPrivate() {
+	key := new(otr.PrivateKey)
+	key.Generate(rand.Reader)
+	bytes := key.Serialize(nil)
+
+	parsedBytes, ok := privKey.Parse(bytes)
+	if !ok {
+		log.Printf("failed parsing private key")
+	}
+
+	if len(parsedBytes) > 0 {
+		log.Printf("the key buffer is not empty after key ")
+	}
+
+	conv.PrivateKey = &privKey
+	conv.FragmentSize = 1000
+	log.Println("client fingerprint:", conv.PrivateKey.Fingerprint())
 }
 
 func main() {
@@ -123,6 +176,8 @@ func main() {
 
 	var c client
 	c.alive = true
+
+	genPrivate()
 	c.sendMsg = make(chan string)
 	c.recMsg = make(chan string)
 
@@ -147,4 +202,3 @@ func main() {
 
 	c.getMessage()
 }
-

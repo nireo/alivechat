@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
 	"log"
 	"net"
@@ -26,7 +27,7 @@ type server struct {
 	messageChannel chan message
 
 	// uuid is the unique identifier
-	clients        map[string]client
+	clients map[string]client
 }
 
 type client struct {
@@ -43,7 +44,7 @@ type message struct {
 	From      *net.UDPAddr
 	To        *net.UDPAddr
 	Timestamp int64
-	Action int
+	Action    int
 }
 
 func (s *server) handleMessage() {
@@ -71,12 +72,26 @@ func (s *server) handleMessage() {
 
 		s.clients[c.ID] = c
 		m.ID = c.ID
+
+		// send data from the server
+		m.Name = "server"
 		s.messageChannel <- m
 	case 1:
 		m.From = addr
 		// find the user to send the message to
 		to, _ := s.clients[m.ToID]
 		m.To = to.Addr
+		s.messageChannel <- m
+	case 2:
+		// we want to only send it back to the user
+		m.From = addr
+		m.To = addr
+
+		var toSend string
+		for id, c := range s.clients {
+			toSend += fmt.Sprintf("ID: %s | name: %s\n", id, c.Name)
+		}
+		m.Content = toSend
 		s.messageChannel <- m
 	default:
 		log.Println("unsupported message action")
@@ -92,12 +107,14 @@ func (s *server) parse(msg []byte) message {
 
 func (s *server) handleMessageSend() {
 	for {
-		msg := <- s.messageChannel
+		msg := <-s.messageChannel
 		data, _ := json.Marshal(msg)
-		if msg.ToID != "" {
+		if msg.ToID != "" || msg.To != nil {
 			s.conn.WriteToUDP(data, msg.To)
 		} else {
-			s.conn.WriteToUDP(data, msg.From)
+			for _, c := range s.clients {
+				s.conn.WriteToUDP(data, c.Addr)
+			}
 		}
 	}
 }

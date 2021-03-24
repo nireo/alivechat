@@ -1,4 +1,4 @@
-package client
+package main
 
 import (
 	"bufio"
@@ -49,6 +49,18 @@ func (c *client) sendMessage(action int, msg string) {
 	}
 }
 
+func (c *client) receiveMessage() {
+	var buf [4096]byte
+	for c.alive {
+		n, err := c.conn.Read(buf[0:])
+		if err != nil {
+			log.Printf("error receiving message")
+		}
+
+		c.recMsg <- string(buf[0:n])
+	}
+}
+
 func (c *client) sendMessageChannel() {
 	for c.alive {
 		msg := <- c.sendMsg
@@ -80,14 +92,23 @@ func (c *client) getMessage() {
 		}
 
 		line := scanner.Text()
-		c.sendMessage(1, line)
+		if line == "/quit" {
+			c.alive = false
+			return
+		} else if line == "/list" {
+			c.sendMessage(2, "")
+		} else {
+			c.sendMessage(1, line)
+		}
 	}
 }
 
 func (c *client) print() {
 	for c.alive {
 		msg := <- c.recMsg
-		fmt.Println(msg)
+		var m message
+		json.Unmarshal([]byte(msg), &m)
+		fmt.Printf("[%s]: %s\n", m.Name, m.Content)
 	}
 }
 
@@ -104,5 +125,26 @@ func main() {
 	c.alive = true
 	c.sendMsg = make(chan string)
 	c.recMsg = make(chan string)
+
+	c.conn, err = net.DialUDP("udp", nil, uAddr)
+	if err != nil {
+		log.Fatalf("error establishing connection to the server")
+	}
+	defer c.conn.Close()
+
+	r := bufio.NewScanner(os.Stdin)
+	fmt.Println("username: ")
+	r.Scan()
+	name := r.Text()
+	c.name = name
+
+	// 0=new user joined
+	c.sendMessage(0, name+" has joined")
+
+	go c.print()
+	go c.receiveMessage()
+	go c.sendMessageChannel()
+
+	c.getMessage()
 }
 

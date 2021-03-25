@@ -201,4 +201,7 @@ func main() {
 	go c.sendMessageChannel()
 
 	c.getMessage()
+
+	// relay the message that the user has disconnected
+	c.sendMessage(3, c.name+" has disconnected")
 }

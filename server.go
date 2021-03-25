@@ -3,11 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"log"
 	"net"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type ConnectionStatus int
@@ -92,6 +93,10 @@ func (s *server) handleMessage() {
 			toSend += fmt.Sprintf("ID: %s | name: %s\n", id, c.Name)
 		}
 		m.Content = toSend
+		s.messageChannel <- m
+	case 3:
+		// relay the message that someone has disconnected
+		delete(s.clients, m.ID)
 		s.messageChannel <- m
 	default:
 		log.Println("unsupported message action")

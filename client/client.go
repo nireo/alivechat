@@ -95,20 +95,38 @@ func (c *client) sendMessageChannel() {
 func (c *client) getMessage() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for c.alive {
-		fmt.Print(">>> ")
 		scanned := scanner.Scan()
 		if !scanned {
 			continue
 		}
 
 		line := scanner.Text()
-		if line == "/quit" {
+		switch line {
+		case "/quit":
 			c.alive = false
 			return
-		} else if line == "/list" {
+		case "/list":
 			c.sendMessage(2, "")
-		} else {
-			c.sendMessage(1, line)
+		case "/connect":
+			// connect and chat with another user privately
+			fmt.Println("userid ?")
+			if _, err := fmt.Scanln(&c.toID); err != nil {
+				log.Printf("error reading user id")
+				continue
+			}
+			fmt.Println("making secure tunnel...")
+			c.sendMsg <- otr.QueryMessage
+		default:
+			fmt.Printf("%s: %s\n", c.name, line)
+			peerMessage, err := conv.Send([]byte(line))
+			if err != nil {
+				log.Println("error sending otr message")
+				continue
+			}
+
+			for _, msg := range peerMessage {
+				c.sendMsg <- string(msg)
+			}
 		}
 	}
 }
@@ -199,6 +217,9 @@ func main() {
 	go c.print()
 	go c.receiveMessage()
 	go c.sendMessageChannel()
+
+	// display the current users
+	c.sendMessage(2, "")
 
 	c.getMessage()
 

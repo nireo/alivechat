@@ -11,15 +11,10 @@ import (
 	"github.com/google/uuid"
 )
 
-type ConnectionStatus int
-
-const (
-	JOINING ConnectionStatus = iota
-	LEAVING
-)
-
 func genUUID() string {
 	uid := uuid.New()
+
+	// remove all of the dashes in the uuids
 	return strings.Replace(uid.String(), "-", "", -1)
 }
 
@@ -49,7 +44,7 @@ type message struct {
 }
 
 func (s *server) handleMessage() {
-	var buffer [4096]byte
+	var buffer [8192]byte
 	size, addr, err := s.conn.ReadFromUDP(buffer[0:])
 	if err != nil {
 		return
@@ -117,9 +112,7 @@ func (s *server) handleMessageSend() {
 		if msg.ToID != "" || msg.To != nil {
 			s.conn.WriteToUDP(data, msg.To)
 		} else {
-			for _, c := range s.clients {
-				s.conn.WriteToUDP(data, c.Addr)
-			}
+			s.conn.WriteToUDP(data, msg.From)
 		}
 	}
 }

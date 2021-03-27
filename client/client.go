@@ -8,6 +8,8 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"golang.org/x/crypto/otr"
 )
@@ -60,7 +62,7 @@ func (c *client) sendMessage(action int, msg string) {
 }
 
 func (c *client) receiveMessage() {
-	var buf [4096]byte
+	var buf [8192]byte
 	for c.alive {
 		n, err := c.conn.Read(buf[0:])
 		if err != nil {
@@ -117,6 +119,11 @@ func (c *client) getMessage() {
 			fmt.Println("making secure tunnel...")
 			c.sendMsg <- otr.QueryMessage
 		default:
+			if line[0] == '/' {
+				fmt.Printf("unrecogized command")
+				continue
+			}
+
 			fmt.Printf("%s: %s\n", c.name, line)
 			peerMessage, err := conv.Send([]byte(line))
 			if err != nil {
@@ -146,7 +153,7 @@ func (c *client) print() {
 
 			if len(out) > 0 {
 				if !enc {
-					log.Println("conversation is not encrypted")
+					log.Println("[WARNING] conversation is not encrypted")
 					fmt.Printf("[%s]: %s\n", m.Name, string(out))
 				} else {
 					fmt.Printf("[%s]: %s\n", m.Name, string(out))
@@ -159,8 +166,6 @@ func (c *client) print() {
 				}
 			}
 		}
-
-		fmt.Printf("[%s]: %s\n", m.Name, m.Content)
 	}
 }
 
@@ -180,7 +185,18 @@ func genPrivate() {
 
 	conv.PrivateKey = &privKey
 	conv.FragmentSize = 1000
-	log.Println("client fingerprint:", conv.PrivateKey.Fingerprint())
+}
+
+func handleForcedClose(cli *client) {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		fmt.Println("\rgoodbye...")
+		// relay the message that the user has disconnected
+		cli.sendMessage(3, cli.name+" has disconnected")
+		os.Exit(0)
+	}()
 }
 
 func main() {
@@ -206,10 +222,14 @@ func main() {
 	defer c.conn.Close()
 
 	r := bufio.NewScanner(os.Stdin)
-	fmt.Println("username: ")
+	fmt.Print("username: ")
 	r.Scan()
 	name := r.Text()
 	c.name = name
+
+	// this makes sure the user is removed from the user's list even
+	// if they close the chat using Ctrl-C
+	handleForcedClose(&c)
 
 	// 0=new user joined
 	c.sendMessage(0, name+" has joined")

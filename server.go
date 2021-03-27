@@ -5,19 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strings"
 	"time"
-
-	"github.com/google/uuid"
 )
 
-func genUUID() string {
-	uid := uuid.New()
-
-	// remove all of the dashes in the uuids
-	return strings.Replace(uid.String(), "-", "", -1)
-}
-
+// server represents the worker that takes care of redirecting messages to
+// other users and handling keeping state of the chat.
 type server struct {
 	conn           *net.UDPConn
 	messageChannel chan message
@@ -26,12 +18,15 @@ type server struct {
 	clients map[string]client
 }
 
+// client represents a chatter with a given name and identifer.
 type client struct {
 	ID   string
 	Name string
 	Addr *net.UDPAddr
 }
 
+// message represents a message exchanged between users and it also holds some other
+// metadate related to the message.
 type message struct {
 	ID        string
 	Name      string
@@ -51,7 +46,11 @@ func (s *server) handleMessage() {
 	}
 
 	msg := buffer[0:size]
-	m := s.parse(msg)
+
+	var m message
+	if err := json.Unmarshal(msg, &m); err != nil {
+		log.Printf("error unmarshaling request json")
+	}
 
 	// set the message information
 	m.Timestamp = time.Now().Unix()
@@ -59,10 +58,18 @@ func (s *server) handleMessage() {
 	// handle different actions
 	switch m.Action {
 	case 0:
+		// check that the user doesn't exist
+		if _, ok := s.clients[m.Name]; ok {
+			m.Name = "server"
+			m.Content = "that username is already taken"
+			s.messageChannel <- m
+			return
+		}
+
 		// create new user
 		var c client
 		c.Addr = addr
-		c.ID = genUUID()
+		c.ID = m.Name
 		c.Name = m.Name
 		m.ToID = ""
 
@@ -84,8 +91,8 @@ func (s *server) handleMessage() {
 		m.To = addr
 
 		var toSend string
-		for id, c := range s.clients {
-			toSend += fmt.Sprintf("ID: %s | name: %s\n", id, c.Name)
+		for _, c := range s.clients {
+			toSend += fmt.Sprintf("name: %s\n", c.Name)
 		}
 		m.Content = toSend
 		s.messageChannel <- m

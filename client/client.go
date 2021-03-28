@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/marcusolsson/tui-go"
 	"golang.org/x/crypto/otr"
 )
 
@@ -31,6 +32,9 @@ type client struct {
 	recMsg  chan string
 
 	toID string
+
+	msgBox *tui.Box
+	ui     tui.UI
 }
 
 type message struct {
@@ -154,6 +158,8 @@ func (c *client) print() {
 			if len(out) > 0 {
 				if !enc {
 					log.Println("[WARNING] conversation is not encrypted")
+
+					// APPEND TO THE MESSAGE BOX
 					fmt.Printf("[%s]: %s\n", m.Name, string(out))
 				} else {
 					fmt.Printf("[%s]: %s\n", m.Name, string(out))

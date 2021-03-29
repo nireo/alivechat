@@ -99,50 +99,6 @@ func (c *client) sendMessageChannel() {
 	}
 }
 
-func (c *client) getMessage() {
-	scanner := bufio.NewScanner(os.Stdin)
-	for c.alive {
-		scanned := scanner.Scan()
-		if !scanned {
-			continue
-		}
-
-		line := scanner.Text()
-		switch line {
-		case "/quit":
-			c.alive = false
-			return
-		case "/list":
-			c.sendMessage(2, "")
-		case "/connect":
-			// connect and chat with another user privately
-			fmt.Println("userid ?")
-			if _, err := fmt.Scanln(&c.toID); err != nil {
-				log.Printf("error reading user id")
-				continue
-			}
-			fmt.Println("making secure tunnel...")
-			c.sendMsg <- otr.QueryMessage
-		default:
-			if line[0] == '/' {
-				fmt.Printf("unrecogized command")
-				continue
-			}
-
-			fmt.Printf("%s: %s\n", c.name, line)
-			peerMessage, err := conv.Send([]byte(line))
-			if err != nil {
-				log.Println("error sending otr message")
-				continue
-			}
-
-			for _, msg := range peerMessage {
-				c.sendMsg <- string(msg)
-			}
-		}
-	}
-}
-
 func (c *client) writeMsgToUI(msg string) {
 	c.ui.Update(func() {
 		c.msgBox.Append(tui.NewHBox(tui.NewLabel(msg), tui.NewSpacer()))
@@ -171,7 +127,10 @@ func (c *client) startInterface() {
 		msg := e.Text()
 		if msg == "/list" {
 			c.sendMessage(2, "")
+			input.SetText("")
 			return
+		} else if msg == "/quit" {
+			os.Exit(0)
 		} else if strings.HasPrefix(msg, "/connect") {
 			name := strings.Split(msg, " ")
 			c.toID = strings.Join(name[1:], " ")

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -55,6 +56,8 @@ func (s *server) handleMessage() {
 	// set the message information
 	m.Timestamp = time.Now().Unix()
 
+	fmt.Println(m.Content)
+
 	// handle different actions
 	switch m.Action {
 	case 0:
@@ -86,6 +89,7 @@ func (s *server) handleMessage() {
 		for name := range s.clients {
 			toSend += fmt.Sprintf("name: %s\n", name)
 		}
+		fmt.Println(toSend)
 		m.Content = toSend
 		s.messageChannel <- m
 	case 3:
@@ -98,17 +102,11 @@ func (s *server) handleMessage() {
 
 }
 
-func (s *server) parse(msg []byte) message {
-	var m message
-	json.Unmarshal(msg, &m)
-	return m
-}
-
 func (s *server) handleMessageSend() {
 	for {
 		msg := <-s.messageChannel
 		data, _ := json.Marshal(msg)
-		if msg.ToID != "" || msg.To != nil {
+		if msg.To != nil {
 			s.conn.WriteToUDP(data, msg.To)
 		} else {
 			s.conn.WriteToUDP(data, msg.From)
@@ -116,8 +114,15 @@ func (s *server) handleMessageSend() {
 	}
 }
 
+var port string
+
+func init() {
+	flag.StringVar(&port, "port", "1200", "the port to host the server")
+	flag.Parse()
+}
+
 func main() {
-	lAddr, err := net.ResolveUDPAddr("udp4", ":1200")
+	lAddr, err := net.ResolveUDPAddr("udp4", ":"+port)
 	if err != nil {
 		log.Fatalf("error resolving udp addr: %s", err)
 	}

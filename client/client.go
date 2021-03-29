@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/marcusolsson/tui-go"
@@ -142,6 +143,71 @@ func (c *client) getMessage() {
 	}
 }
 
+func (c *client) writeMsgToUI(msg string) {
+	c.ui.Update(func() {
+		c.msgBox.Append(tui.NewHBox(tui.NewLabel(msg), tui.NewSpacer()))
+	})
+}
+
+func (c *client) startInterface() {
+	messageArea := tui.NewVBox()
+	messageAreaScroll := tui.NewScrollArea(messageArea)
+	messageAreaScroll.SetAutoscrollToBottom(true)
+	messageAreaBox := tui.NewVBox(messageAreaScroll)
+	messageAreaBox.SetBorder(true)
+
+	input := tui.NewEntry()
+	input.SetFocused(true)
+	input.SetSizePolicy(tui.Expanding, tui.Maximum)
+
+	inputBox := tui.NewHBox(input)
+	inputBox.SetBorder(true)
+	inputBox.SetSizePolicy(tui.Expanding, tui.Maximum)
+
+	chat := tui.NewVBox(messageAreaBox, inputBox)
+	chat.SetSizePolicy(tui.Expanding, tui.Expanding)
+
+	input.OnSubmit(func(e *tui.Entry) {
+		msg := e.Text()
+		if msg == "/list" {
+			c.sendMessage(2, "")
+			return
+		} else if strings.HasPrefix(msg, "/connect") {
+			name := strings.Split(msg, " ")
+			c.toID = strings.Join(name[1:], " ")
+			c.sendMsg <- otr.QueryMessage
+		}
+		peerMessage, err := conv.Send([]byte(e.Text()))
+		if err != nil {
+			message := "[ERROR] cannot send otr message"
+			messageArea.Append(tui.NewHBox(tui.NewLabel(message), tui.NewSpacer()))
+		}
+
+		for _, m := range peerMessage {
+			c.sendMsg <- string(m)
+		}
+
+		mesg := fmt.Sprintf("<%s> %s", c.name, e.Text())
+		messageArea.Append(tui.NewHBox(tui.NewLabel(mesg), tui.NewSpacer()))
+		input.SetText("")
+	})
+
+	root := tui.NewHBox(chat)
+
+	ui, err := tui.New(root)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ui.SetKeybinding("Esc", func() {
+		ui.Quit()
+		c.sendMessage(3, c.name+" has disconnected")
+	})
+
+	c.msgBox = messageArea
+	c.ui = ui
+}
+
 func (c *client) print() {
 	for c.alive {
 		msg := <-c.recMsg
@@ -157,12 +223,12 @@ func (c *client) print() {
 
 			if len(out) > 0 {
 				if !enc {
-					log.Println("[WARNING] conversation is not encrypted")
+					c.writeMsgToUI("[WARNING] conversation not encrypted...")
 
 					// APPEND TO THE MESSAGE BOX
-					fmt.Printf("[%s]: %s\n", m.Name, string(out))
+					c.writeMsgToUI(fmt.Sprintf("<%s> %s\n", m.Name, string(out)))
 				} else {
-					fmt.Printf("[%s]: %s\n", m.Name, string(out))
+					c.writeMsgToUI(fmt.Sprintf("<%s> %s\n", m.Name, string(out)))
 				}
 			}
 
@@ -247,7 +313,10 @@ func main() {
 	// display the current users
 	c.sendMessage(2, "")
 
-	c.getMessage()
+	c.startInterface()
+	if err := c.ui.Run(); err != nil {
+		log.Fatalf("error staring ui: %s", err)
+	}
 
 	// relay the message that the user has disconnected
 	c.sendMessage(3, c.name+" has disconnected")

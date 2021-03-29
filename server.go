@@ -58,14 +58,6 @@ func (s *server) handleMessage() {
 	// handle different actions
 	switch m.Action {
 	case 0:
-		// check that the user doesn't exist
-		if _, ok := s.clients[m.Name]; ok {
-			m.Name = "server"
-			m.Content = "that username is already taken"
-			s.messageChannel <- m
-			return
-		}
-
 		// create new user
 		var c client
 		c.Addr = addr
@@ -91,8 +83,8 @@ func (s *server) handleMessage() {
 		m.To = addr
 
 		var toSend string
-		for _, c := range s.clients {
-			toSend += fmt.Sprintf("name: %s\n", c.Name)
+		for name := range s.clients {
+			toSend += fmt.Sprintf("name: %s\n", name)
 		}
 		m.Content = toSend
 		s.messageChannel <- m

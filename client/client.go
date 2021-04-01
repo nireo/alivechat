@@ -2,25 +2,16 @@ package main
 
 import (
 	"bufio"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net"
 	"os"
-	"os/signal"
 	"strings"
-	"syscall"
+	"time"
 
 	"github.com/marcusolsson/tui-go"
 	"golang.org/x/crypto/otr"
-)
-
-// Instead of implementing the OTR-protocol myself, I just use the one provided by go :)
-var (
-	privKey   otr.PrivateKey
-	conv      otr.Conversation
-	secChange otr.SecurityChange
 )
 
 type client struct {
@@ -88,6 +79,7 @@ func (c *client) sendMessageChannel() {
 			Content: msg,
 			ToID:    c.toID,
 		}
+
 		data, err := json.Marshal(m)
 		if err != nil {
 			log.Printf("error marshaling json: %s", err)
@@ -146,7 +138,7 @@ func (c *client) startInterface() {
 			c.sendMsg <- string(m)
 		}
 
-		mesg := fmt.Sprintf("<%s> %s", c.name, e.Text())
+		mesg := fmt.Sprintf("[%s] <%s> %s", formatTimestamp(time.Now().Unix()), c.name, e.Text())
 		messageArea.Append(tui.NewHBox(tui.NewLabel(mesg), tui.NewSpacer()))
 		input.SetText("")
 	})
@@ -174,23 +166,10 @@ func (c *client) print() {
 		json.Unmarshal([]byte(msg), &m)
 
 		if m.Action == 1 {
-			bytes := []byte(m.Content)
-			out, enc, _, mpeer, err := conv.Receive(bytes)
-			if err != nil {
-				log.Printf("error receiving conversation bytes")
-			}
-
-			if len(out) > 0 {
-				if !enc {
-					c.writeMsgToUI("[WARNING] conversation not encrypted...")
-					c.writeMsgToUI(fmt.Sprintf("<%s> %s\n", m.Name, string(out)))
-				} else {
-					c.writeMsgToUI(fmt.Sprintf("<%s> %s\n", m.Name, string(out)))
-				}
-			}
-
-			if len(mpeer) > 0 {
-				for _, msg := range mpeer {
+			content, peerMessages := parseContent(&m)
+			c.writeMsgToUI(content)
+			if len(peerMessages) > 0 {
+				for _, msg := range peerMessages {
 					c.sendMsg <- string(msg)
 				}
 			}
@@ -202,36 +181,6 @@ func (c *client) print() {
 			c.writeMsgToUI(fmt.Sprintf("<%s> %s\n", m.Name, m.Content))
 		}
 	}
-}
-
-func genPrivate() {
-	key := new(otr.PrivateKey)
-	key.Generate(rand.Reader)
-	bytes := key.Serialize(nil)
-
-	parsedBytes, ok := privKey.Parse(bytes)
-	if !ok {
-		log.Printf("failed parsing private key")
-	}
-
-	if len(parsedBytes) > 0 {
-		log.Printf("the key buffer is not empty after key ")
-	}
-
-	conv.PrivateKey = &privKey
-	conv.FragmentSize = 1000
-}
-
-func handleForcedClose(cli *client) {
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		fmt.Println("\rgoodbye...")
-		// relay the message that the user has disconnected
-		cli.sendMessage(3, cli.name+" has disconnected")
-		os.Exit(0)
-	}()
 }
 
 func main() {
@@ -246,7 +195,7 @@ func main() {
 	var c client
 	c.alive = true
 
-	genPrivate()
+	generatePrivateKey()
 	c.sendMsg = make(chan string)
 	c.recMsg = make(chan string)
 
@@ -280,7 +229,4 @@ func main() {
 	if err := c.ui.Run(); err != nil {
 		log.Fatalf("error staring ui: %s", err)
 	}
-
-	// relay the message that the user has disconnected
-	c.sendMessage(3, c.name+" has disconnected")
 }

@@ -83,7 +83,7 @@ func (s *server) handleMessage() {
 	case 2:
 		// we want to only send it back to the user
 		m.From = addr
-		m.To = addr
+		m.Name = "server"
 
 		var toSend string
 		for name := range s.clients {
@@ -109,6 +109,10 @@ func (s *server) handleMessageSend() {
 		if msg.To != nil {
 			s.conn.WriteToUDP(data, msg.To)
 		} else {
+			// we don't want to echo back the messages of a user
+			if msg.Name != "server" {
+				continue
+			}
 			s.conn.WriteToUDP(data, msg.From)
 		}
 	}

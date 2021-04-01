@@ -183,8 +183,6 @@ func (c *client) print() {
 			if len(out) > 0 {
 				if !enc {
 					c.writeMsgToUI("[WARNING] conversation not encrypted...")
-
-					// APPEND TO THE MESSAGE BOX
 					c.writeMsgToUI(fmt.Sprintf("<%s> %s\n", m.Name, string(out)))
 				} else {
 					c.writeMsgToUI(fmt.Sprintf("<%s> %s\n", m.Name, string(out)))
@@ -196,6 +194,12 @@ func (c *client) print() {
 					c.sendMsg <- string(msg)
 				}
 			}
+		} else if m.Action == 2 {
+			c.writeMsgToUI(fmt.Sprintf("<%s> %s\n", m.Name, m.Content))
+		} else if m.Action == 3 {
+			c.writeMsgToUI(fmt.Sprintf("<%s> %s\n", m.Name, m.Content))
+		} else if m.Action == 0 {
+			c.writeMsgToUI(fmt.Sprintf("<%s> %s\n", m.Name, m.Content))
 		}
 	}
 }

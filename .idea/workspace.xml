@@ -4,7 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ca415fea-3b15-4372-bb9c-c9fad203ba07" name="Default Changelist" comment="" />
+    <list default="true" id="ca415fea-3b15-4372-bb9c-c9fad203ba07" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/alivechat/frontend/build/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/alivechat/frontend/build/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/alivechat/frontend/build/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/alivechat/frontend/build/main.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/alivechat/frontend/src/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/alivechat/frontend/src/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/alivechat/frontend/src/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/alivechat/frontend/src/main.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/alivechat/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/alivechat/main.go" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -14,6 +21,7 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Go File" />
+        <option value="JavaScript File" />
       </list>
     </option>
   </component>
@@ -36,8 +44,9 @@
     <property name="go.import.settings.migrated" value="true" />
     <property name="go.sdk.automatically.set" value="true" />
     <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../obviate" />
-    <property name="settings.editor.selected.configurable" value="template.copyright.formatting" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="nodejs_package_manager_path" value="npm" />
+    <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TypeScriptGeneratedFilesManager">
@@ -47,17 +56,23 @@
     <integration-enabled>true</integration-enabled>
   </component>
   <component name="WindowStateProjectService">
+    <state x="1017" y="494" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1618926488811">
+      <screen x="0" y="0" width="2560" height="1440" />
+    </state>
+    <state x="1017" y="494" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog/0.0.2560.1440/2560.57.1920.1080@0.0.2560.1440" timestamp="1618926488811" />
     <state x="1063" y="466" width="426" height="480" key="FileChooserDialogImpl" timestamp="1617276755181">
       <screen x="0" y="305" width="2560" height="1416" />
     </state>
     <state x="1063" y="466" width="426" height="480" key="FileChooserDialogImpl/0.305.2560.1416/2560.0.1080.1920@0.305.2560.1416" timestamp="1617276755181" />
-    <state x="155" y="378" key="SettingsEditor" timestamp="1616591282988">
+    <state x="155" y="378" key="SettingsEditor" timestamp="1618925237390">
       <screen x="0" y="0" width="2560" height="1440" />
     </state>
     <state x="155" y="378" key="SettingsEditor/0.0.2560.1440/2560.250.1920.1080@0.0.2560.1440" timestamp="1616591282988" />
-    <state x="309" y="347" width="672" height="678" key="search.everywhere.popup" timestamp="1616591287851">
+    <state x="155" y="378" key="SettingsEditor/0.0.2560.1440/2560.57.1920.1080@0.0.2560.1440" timestamp="1618925237390" />
+    <state x="309" y="347" width="672" height="678" key="search.everywhere.popup" timestamp="1618925363782">
       <screen x="0" y="0" width="2560" height="1440" />
     </state>
     <state x="309" y="347" width="672" height="678" key="search.everywhere.popup/0.0.2560.1440/2560.250.1920.1080@0.0.2560.1440" timestamp="1616591287851" />
+    <state x="309" y="347" width="672" height="678" key="search.everywhere.popup/0.0.2560.1440/2560.57.1920.1080@0.0.2560.1440" timestamp="1618925363782" />
   </component>
 </project>
